@@ -86,14 +86,15 @@ Driver::Driver(const rclcpp::NodeOptions & options)
       LOG_ERROR("this device should be master, but the hardware says it's not!");
     }
     resetPub_ =
-      this->create_publisher<TimeMsg>("~/reset_timestamps", rclcpp::QoS(rclcpp::KeepLast(10)));
+      this->create_publisher<TimeMsg>(
+        "~/reset_timestamps", rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile());
   } else {
     if (wrapper_->isMaster()) {
       LOG_ERROR("this device is configured as slave, but the hardware says it's a master!");
     }
 
     resetSub_ = this->create_subscription<TimeMsg>(
-      "~/reset_timestamps", rclcpp::QoS(rclcpp::KeepLast(10)),
+      "~/reset_timestamps", rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile(),
       std::bind(&Driver::resetMsg, this, std::placeholders::_1));
   }
 
@@ -523,12 +524,12 @@ static int32_t compute_new_exposure_time(
   return (newTime);
 }
 
-void Driver::framePacketCallback(uint64_t t, const libcaer::events::FrameEventPacket & packet)
+void Driver::framePacketCallback([[maybe_unused]]uint64_t t, const libcaer::events::FrameEventPacket & packet)
 {
   if (cameraPub_.getNumSubscribers() > 0) {
     std::vector<std::unique_ptr<sensor_msgs::msg::Image>> msgs;
     (void)message_converter::convert_frame_packet(
-      &msgs, packet, cameraFrameId_, rclcpp::Time(t, RCL_SYSTEM_TIME));
+      &msgs, packet, cameraFrameId_, rosBaseTime_);
     for (auto & img : msgs) {
       sensor_msgs::msg::CameraInfo::UniquePtr cinfo(
         new sensor_msgs::msg::CameraInfo(cameraInfoMsg_));
@@ -555,12 +556,12 @@ void Driver::framePacketCallback(uint64_t t, const libcaer::events::FrameEventPa
   }
 }
 
-void Driver::imu6PacketCallback(uint64_t t, const libcaer::events::IMU6EventPacket & packet)
+void Driver::imu6PacketCallback([[maybe_unused]]uint64_t t, const libcaer::events::IMU6EventPacket & packet)
 {
   if (imuPub_->get_subscription_count() > 0) {
     std::vector<std::unique_ptr<sensor_msgs::msg::Imu>> msgs;
     (void)message_converter::convert_imu6_packet(
-      &msgs, packet, imuFrameId_, rclcpp::Time(t, RCL_SYSTEM_TIME));
+      &msgs, packet, imuFrameId_, rosBaseTime_);
     for (auto & msg : msgs) {
       imuPub_->publish(std::move(msg));
     }

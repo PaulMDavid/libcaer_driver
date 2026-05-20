@@ -41,7 +41,7 @@ size_t convert_polarity_packet(
     const uint64_t sensorTimeHighBits = sensorTime & (~((1ULL << TS_OVERFLOW_SHIFT) - 1));
     // the time_base has the ros base time (including the lower bits!), increased
     // by the high bits of the elapsed sensor time
-    msg->time_base = sensorTimeHighBits * 500 + baseTime.nanoseconds();
+    msg->time_base = sensorTimeHighBits * 1000 + baseTime.nanoseconds();
   }
 
   const size_t BYTES_PER_ENCODED_EVENT = 8;
@@ -97,7 +97,7 @@ size_t convert_polarity_packet_compressed(
   auto & events = msg->events;
   if (events.empty()) {
     // base time is simply the ROS time at startup + sensor elapsed time
-    msg->time_base = sensorPacketTime * 500 + baseTime.nanoseconds();
+    msg->time_base = sensorPacketTime * 1000 + baseTime.nanoseconds();
     *sensorTime_0 = sensorPacketTime;
   }
   const uint64_t dt_0 = sensorPacketTime - *sensorTime_0;
@@ -174,7 +174,7 @@ static std::unique_ptr<sensor_msgs::msg::Image> convert_frame(
       BOMB_OUT("invalid number of channels for frame: " << numChan);
   }
   msg->header.stamp =
-    baseTime + rclcpp::Duration(std::chrono::nanoseconds(frame.getTimestamp64(packet) * 500));
+    baseTime + rclcpp::Duration(std::chrono::nanoseconds(frame.getTimestamp64(packet) * 1000));
   msg->header.frame_id = frameId;
 
   const uint32_t stride = numChan * (msg->width);
@@ -217,7 +217,7 @@ static std::unique_ptr<sensor_msgs::msg::Imu> convert_imu(
   msg->orientation_covariance[0] = -1.0;  // see ROS REP 145
   msg->header.frame_id = frameId;
   msg->header.stamp =
-    baseTime + rclcpp::Duration(std::chrono::nanoseconds(imu.getTimestamp64(packet) * 500));
+    baseTime + rclcpp::Duration(std::chrono::nanoseconds(imu.getTimestamp64(packet) * 1000));
   return (msg);
 }
 
